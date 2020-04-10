@@ -1,9 +1,9 @@
 package bind_raw
 
 import (
+	"fmt"
 	"os"
 	"testing"
-	"fmt"
 )
 
 func TestUnpack(t *testing.T) {
@@ -15,9 +15,8 @@ func TestUnpack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(raw)
-	rrs := raw.GetRRs()  
-	for _,rr :=  range rrs {
+	rrs := raw.GetRFC3597s()
+	for _, rr := range rrs {
 		fmt.Println(rr)
 	}
 }

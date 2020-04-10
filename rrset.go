@@ -1,8 +1,9 @@
 package bind_raw
 
 import (
-	"errors"
 	"encoding/hex"
+	"errors"
+
 	"github.com/miekg/dns"
 	"golang.org/x/xerrors"
 )
@@ -65,7 +66,7 @@ func (r *RawRRSet) Unpack(bs []byte, off int) (int, error) {
 	if err != nil {
 		return off, xerrors.Errorf("failt to parse rdataset: %w", err)
 	}
-	_,off,err = unpackUint16(bs,off)
+	_, off, err = unpackUint16(bs, off)
 	r.name, off, err = dns.UnpackDomainName(bs, off)
 	if err != nil {
 		return off, xerrors.Errorf("failt to parse name: %w", err)
@@ -85,16 +86,31 @@ func (r *RawRRSet) Unpack(bs []byte, off int) (int, error) {
 	return off, nil
 }
 
-func (r *RawRRSet)GetRRs() []dns.RR {
+func (r *RawRRSet) GetRRs() ([]dns.RR, error) {
 	var results []dns.RR
-	for _,rrdata := range r.Rdatas {
+	for _, rrdata := range r.Rdatas {
+		hexBytes := make([]byte, len(rrdata)*2)
+		hex.Encode(hexBytes, rrdata)
+		header := dns.RR_Header{r.name, r.dataset.Type, r.dataset.Class, r.dataset.TTL, uint16(len(rrdata))}
+		rr, _, err := dns.UnpackRRWithHeader(header, rrdata, 0)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, rr)
+	}
+	return results, nil
+}
+
+func (r *RawRRSet) GetRFC3597s() []*dns.RFC3597 {
+	var results []*dns.RFC3597
+	for _, rrdata := range r.Rdatas {
 		hexBytes := make([]byte, len(rrdata)*2)
 		hex.Encode(hexBytes, rrdata)
 		rr := dns.RFC3597{
-			Hdr: dns.RR_Header{r.name,r.dataset.Type,r.dataset.Class,r.dataset.TTL,uint16(len(rrdata))},
+			Hdr:   dns.RR_Header{r.name, r.dataset.Type, r.dataset.Class, r.dataset.TTL, uint16(len(rrdata))},
 			Rdata: string(hexBytes),
 		}
-		results = append(results,&rr)
+		results = append(results, &rr)
 	}
 	return results
 }
