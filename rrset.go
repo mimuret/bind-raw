@@ -57,7 +57,19 @@ func (r *Rdataset) Unpack(bs []byte, off int) (int, error) {
 type RawRRSet struct {
 	dataset Rdataset
 	name    string
-	Rdatas  [][]byte
+	rdatas  [][]byte
+}
+
+func (r *RawRRSet) GetDataset() Rdataset {
+	return r.dataset
+}
+
+func (r *RawRRSet) GetName() string {
+	return r.name
+}
+
+func (r *RawRRSet) GetRdatas() [][]byte {
+	return r.rdatas
 }
 
 func (r *RawRRSet) Unpack(bs []byte, off int) (int, error) {
@@ -79,7 +91,7 @@ func (r *RawRRSet) Unpack(bs []byte, off int) (int, error) {
 		if err != nil {
 			return off, xerrors.Errorf("failed to parse rdlength: %w", err)
 		}
-		r.Rdatas = append(r.Rdatas, bs[off:off+int(rdlength)])
+		r.rdatas = append(r.rdatas, bs[off:off+int(rdlength)])
 		off += int(rdlength)
 	}
 
@@ -88,7 +100,7 @@ func (r *RawRRSet) Unpack(bs []byte, off int) (int, error) {
 
 func (r *RawRRSet) GetRRs() ([]dns.RR, error) {
 	var results []dns.RR
-	for _, rrdata := range r.Rdatas {
+	for _, rrdata := range r.rdatas {
 		hexBytes := make([]byte, len(rrdata)*2)
 		hex.Encode(hexBytes, rrdata)
 		header := dns.RR_Header{r.name, r.dataset.Type, r.dataset.Class, r.dataset.TTL, uint16(len(rrdata))}
@@ -103,7 +115,7 @@ func (r *RawRRSet) GetRRs() ([]dns.RR, error) {
 
 func (r *RawRRSet) GetRFC3597s() []*dns.RFC3597 {
 	var results []*dns.RFC3597
-	for _, rrdata := range r.Rdatas {
+	for _, rrdata := range r.rdatas {
 		hexBytes := make([]byte, len(rrdata)*2)
 		hex.Encode(hexBytes, rrdata)
 		rr := dns.RFC3597{
